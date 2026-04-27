@@ -18,3 +18,11 @@ baseline_floor_rps: 0.0
 baseline_min_samples_current_hour: 60
 # inside container: bind host ./data to /app/data in docker-compose
 audit_log_path: /app/data/audit.log
+
+detection:
+  z_threshold: 3.0
+  z_threshold_tight: 2.0
+  rate_multiplier: 5.0
+  rate_multiplier_tight: 3.0
+  error_surge_multiplier: 3.0
+  min_baseline_error_for_surge: 0.0001

@@ -31,6 +31,15 @@ class TestSlidingWindows(unittest.TestCase):
         self.assertEqual(w.ip_count("a", now=base + 2), 2)
         self.assertEqual(w.ip_count("b", now=base + 2), 1)
 
+    def test_error_deques(self) -> None:
+        w = SlidingWindows(window_seconds=60.0, sweep_interval_seconds=0.0)
+        base = 10_000.0
+        w.record("a", status=200, now=base)
+        w.record("a", status=404, now=base + 0.1)
+        w.record("a", status=500, now=base + 0.2)
+        self.assertEqual(w.ip_error_count("a", now=base + 1), 2)
+        self.assertEqual(w.global_error_count(now=base + 1), 2)
+
     def test_sweep_removes_stale_ip(self) -> None:
         w = SlidingWindows(window_seconds=5.0, sweep_interval_seconds=1.0)
         w.record("x", now=0.0)

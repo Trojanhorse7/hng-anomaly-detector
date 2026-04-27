@@ -25,6 +25,7 @@ class TestRollingBaseline(unittest.TestCase):
         self.assertIsInstance(r, BaselineResult)
         self.assertEqual(r.n_samples, 60)
         self.assertEqual(r.total_requests_in_window, 0)
+        self.assertEqual(r.total_errors_in_window, 0)
         # floor std
         self.assertGreaterEqual(r.effective_std, 0.01)
 

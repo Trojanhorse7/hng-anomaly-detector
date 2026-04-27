@@ -7,10 +7,12 @@ import os
 import signal
 import sys
 import threading
+import time
 from pathlib import Path
 
 import yaml
 
+import detector as det
 from baseline import RollingBaseline, start_baseline_recompute_thread
 from monitor import AccessLogMonitor
 from windows import SlidingWindows
@@ -53,20 +55,37 @@ def main() -> None:
     sweep_s = float(cfg.get("sweep_interval_seconds", 1.0))
     win = SlidingWindows(window_seconds=window_s, sweep_interval_seconds=sweep_s)
     bl = RollingBaseline(cfg)
+    dcfg = det.load_detection_config(cfg)
     start_baseline_recompute_thread(bl, _stop)
+    last_det_log = [0.0]  # throttle info lines
 
     def on_event(ev: dict) -> None:
-        bl.record()
-        win.record(ev["source_ip"])
+        st = int(ev["status"])
+        is_err = 400 <= st < 600
+        bl.record(is_error=is_err)
+        win.record(ev["source_ip"], status=st)
         g = win.global_count()
         ig = win.ip_count(ev["source_ip"])
         g_rps = g / window_s
         i_rps = ig / window_s
+        sn = det.evaluate(bl.last, win, ev["source_ip"], window_s, dcfg)
+        if sn.global_anomaly or sn.ip_anomaly:
+            if time.time() - last_det_log[0] > 1.0:
+                last_det_log[0] = time.time()
+                logging.warning(
+                    "det: global=%s ip=%s | zg=%.2f zi=%.2f | %s",
+                    sn.global_anomaly,
+                    sn.ip_anomaly,
+                    sn.z_global,
+                    sn.z_ip,
+                    sn.reason,
+                )
         # one line per request + sliding-window stats for the configured window
+        det_note = f" det=G{int(sn.global_anomaly)}I{int(sn.ip_anomaly)}e{int(sn.error_surge)}"
         print(
             f"event: ip={ev['source_ip']} {ev['method']} {ev['path']} -> "
             f"{ev['status']} size={ev['response_size']}"
-            f" | w{int(window_s)}s: global={g}({g_rps:.2f}/s) this_ip={ig}({i_rps:.2f}/s)",
+            f" | w{int(window_s)}s: global={g}({g_rps:.2f}/s) this_ip={ig}({i_rps:.2f}/s){det_note}",
             flush=True,
         )
 
