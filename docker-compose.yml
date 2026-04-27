@@ -1,5 +1,5 @@
-# phase 1 stack: nextcloud (their image) + nginx in front, logs on a named volume
-# on the vps: docker compose up -d
+# nextcloud (given image) + nginx + detector; named log volume
+# vps: docker compose up -d
 
 name: hng-anomaly-stack
 
@@ -8,7 +8,6 @@ networks:
     driver: bridge
 
 volumes:
-  # based on the name from the task
   HNG-nginx-logs:
 
 services:
@@ -45,5 +44,6 @@ services:
     volumes:
       - HNG-nginx-logs:/var/log/nginx:ro
       - ./detector/config.yaml:/app/config.yaml:ro
+      - ./data:/app/data
     networks:
       - hng_net

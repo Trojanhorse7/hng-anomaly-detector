@@ -21,3 +21,7 @@ local/
 
 # markdown in docs — keep on my machine, not in the repo
 docs/**/*.md
+
+# audit + runtime (keep folder)
+data/*
+!data/.gitkeep

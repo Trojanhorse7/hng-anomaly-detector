@@ -4,3 +4,17 @@ log_path: /var/log/nginx/hng-access.log
 # true = only new lines after start (normal on the vps)
 # false = read whole file from the top (handy if you want to replay an existing log once)
 start_at_end: true
+
+# sliding windows: last N seconds of request timestamps (global + per source_ip)
+window_seconds: 60
+# how often to sweep stale per-ip deques (seconds)
+sweep_interval_seconds: 1.0
+
+# baseline on global per-second counts, recompute interval, hourly preference
+baseline_window_seconds: 1800
+baseline_recompute_interval_seconds: 60
+baseline_min_std: 0.000001
+baseline_floor_rps: 0.0
+baseline_min_samples_current_hour: 60
+# inside container: bind host ./data to /app/data in docker-compose
+audit_log_path: /app/data/audit.log
