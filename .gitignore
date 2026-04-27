@@ -1,0 +1,19 @@
+# stuff that shows up while editing this repo (compose + nginx + docs) — nothing extra
+
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+local/
+*_local.md
+*local*.md
+
+*.tmp
+*.bak
+~$*
+
+# markdown in docs — keep on my machine, not in the repo
+docs/**/*.md

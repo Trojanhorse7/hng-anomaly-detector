@@ -1,0 +1,35 @@
+# phase 1 stack: nextcloud (their image) + nginx in front, logs on a named volume
+# on the vps: docker compose up -d
+
+name: hng-anomaly-stack
+
+networks:
+  hng_net:
+    driver: bridge
+
+volumes:
+  # based on the name from the task
+  HNG-nginx-logs:
+
+services:
+  nextcloud:
+    image: kefaslungu/hng-nextcloud:latest
+    container_name: hng-nextcloud
+    restart: unless-stopped
+    networks:
+      - hng_net
+    # not publishing 8080/whatever—only hitting nextcloud through nginx
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: hng-nginx
+    depends_on:
+      - nextcloud
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - HNG-nginx-logs:/var/log/nginx
+    networks:
+      - hng_net
