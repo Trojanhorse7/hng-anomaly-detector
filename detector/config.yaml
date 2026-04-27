@@ -1,0 +1,6 @@
+# paths are inside the detector container when you use docker compose
+log_path: /var/log/nginx/hng-access.log
+
+# true = only new lines after start (normal on the vps)
+# false = read whole file from the top (handy if you want to replay an existing log once)
+start_at_end: true

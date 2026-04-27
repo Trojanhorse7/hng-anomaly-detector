@@ -33,3 +33,17 @@ services:
       - HNG-nginx-logs:/var/log/nginx
     networks:
       - hng_net
+
+  detector:
+    build: ./detector
+    container_name: hng-detector
+    depends_on:
+      - nginx
+    restart: unless-stopped
+    environment:
+      HNG_CONFIG: /app/config.yaml
+    volumes:
+      - HNG-nginx-logs:/var/log/nginx:ro
+      - ./detector/config.yaml:/app/config.yaml:ro
+    networks:
+      - hng_net

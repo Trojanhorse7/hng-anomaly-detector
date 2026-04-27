@@ -1,5 +1,9 @@
 # stuff that shows up while editing this repo (compose + nginx + docs) — nothing extra
 
+.venv
+__pycache__/
+*.pyc
+
 .DS_Store
 Thumbs.db
 Desktop.ini
