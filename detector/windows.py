@@ -118,6 +118,17 @@ class SlidingWindows:
     def ip_error_rps(self, source_ip: str, *, now: float | None = None) -> float:
         return self.ip_error_count(source_ip, now=now) / self._window
 
+    def top_source_ips(self, n: int, *, now: float | None = None) -> list[tuple[str, int]]:
+        now = time.time() if now is None else now
+        scored: list[tuple[str, int]] = []
+        for ip, dq in list(self._per_ip.items()):
+            self._prune(dq, now)
+            c = len(dq)
+            if c > 0:
+                scored.append((ip, c))
+        scored.sort(key=lambda t: -t[1])
+        return scored[:n]
+
     def snapshot(
         self,
         source_ip: str | None = None,

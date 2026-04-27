@@ -39,11 +39,15 @@ services:
     depends_on:
       - nginx
     restart: unless-stopped
+    # iptables DROP must target the host network stack — use Linux host networking on the VPS.
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
     environment:
       HNG_CONFIG: /app/config.yaml
+      # Pass through from host `.env` (Compose substitutes ${...} when you `docker compose up`)
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
     volumes:
       - HNG-nginx-logs:/var/log/nginx:ro
       - ./detector/config.yaml:/app/config.yaml:ro
       - ./data:/app/data
-    networks:
-      - hng_net

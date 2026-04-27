@@ -1,5 +1,6 @@
 # stuff that shows up while editing this repo (compose + nginx + docs) — nothing extra
 
+.env
 .venv
 __pycache__/
 *.pyc

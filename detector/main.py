@@ -13,8 +13,14 @@ from pathlib import Path
 import yaml
 
 import detector as det
+from actions import handle_detection
+from env_expand import expand_env_placeholders
 from baseline import RollingBaseline, start_baseline_recompute_thread
+from dashboard import build_state_json, start_dashboard
+from metrics_runtime import RuntimeMetrics
 from monitor import AccessLogMonitor
+from notifier import load_notifier_config
+from unbanner import BanManager
 from windows import SlidingWindows
 
 
@@ -41,7 +47,8 @@ def load_config() -> dict:
         print(f"config not found: {cfg_path}", file=sys.stderr)
         sys.exit(1)
     with cfg_path.open(encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        raw = yaml.safe_load(f)
+    return expand_env_placeholders(raw if raw is not None else {})
 
 
 def main() -> None:
@@ -55,9 +62,41 @@ def main() -> None:
     sweep_s = float(cfg.get("sweep_interval_seconds", 1.0))
     win = SlidingWindows(window_seconds=window_s, sweep_interval_seconds=sweep_s)
     bl = RollingBaseline(cfg)
+    metrics = RuntimeMetrics()
+    notifier_cfg = load_notifier_config(cfg)
+    audit_path = str(cfg.get("audit_log_path") or "")
+    ban_state_path = str(cfg.get("ban_state_path") or "/app/data/ban_state.json")
+    ban_tick = float(cfg.get("unbanner_tick_seconds", 3.0))
+    ban_mgr = BanManager(
+        ban_state_path,
+        audit_path or None,
+        notifier_cfg.webhook_url,
+        tick_interval=ban_tick,
+    )
+    ban_mgr.start_thread(_stop)
     dcfg = det.load_detection_config(cfg)
     start_baseline_recompute_thread(bl, _stop)
     last_det_log = [0.0]  # throttle info lines
+    last_global_slack_ts = [0.0]
+    actions_enabled = ((cfg.get("actions") or {}).get("enabled") is not False)
+    global_cd = float((cfg.get("actions") or {}).get("global_notify_cooldown_seconds", 120.0))
+
+    dash_cfg = cfg.get("dashboard") or {}
+    if dash_cfg.get("enabled", True):
+        _pi = float(dash_cfg.get("push_interval_seconds", 2.5))
+        push_interval_s = max(0.2, min(_pi, 3.0))
+        start_dashboard(
+            str(dash_cfg.get("bind_host", dash_cfg.get("host", "0.0.0.0"))),
+            int(dash_cfg.get("port", 8080)),
+            lambda: build_state_json(
+                win=win,
+                bl=bl,
+                ban_mgr=ban_mgr,
+                metrics=metrics,
+                window_s=window_s,
+            ),
+            push_interval_s=push_interval_s,
+        )
 
     def on_event(ev: dict) -> None:
         st = int(ev["status"])
@@ -68,7 +107,18 @@ def main() -> None:
         ig = win.ip_count(ev["source_ip"])
         g_rps = g / window_s
         i_rps = ig / window_s
+        metrics.bump()
         sn = det.evaluate(bl.last, win, ev["source_ip"], window_s, dcfg)
+        if actions_enabled:
+            handle_detection(
+                sn=sn,
+                bl=bl,
+                ev=ev,
+                ban_mgr=ban_mgr,
+                webhook_url=notifier_cfg.webhook_url,
+                global_cooldown_s=global_cd,
+                last_global_ts=last_global_slack_ts,
+            )
         if sn.global_anomaly or sn.ip_anomaly:
             if time.time() - last_det_log[0] > 1.0:
                 last_det_log[0] = time.time()

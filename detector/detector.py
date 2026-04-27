@@ -113,3 +113,29 @@ def evaluate(
         use_rate_mult=rm,
         reason=r,
     )
+
+
+def _trigger_label(z: float, rps: float, z_t: float, rm: float, mu: float) -> str:
+    """order: z first, then rate (matches short-circuit in evaluate)."""
+    mpos = max(mu, 1e-12)
+    if z > z_t:
+        return f"z>{z_t}"
+    if rps > rm * mpos:
+        return f"r>{rm}*mu"
+    return "none"
+
+
+def global_anomaly_cause(sn: DetectionSnapshot, b: BaselineResult) -> str:
+    if not sn.global_anomaly:
+        return "none"
+    return _trigger_label(
+        sn.z_global, sn.g_rps, sn.use_z, sn.use_rate_mult, b.effective_mean
+    )
+
+
+def ip_anomaly_cause(sn: DetectionSnapshot, b: BaselineResult) -> str:
+    if not sn.ip_anomaly:
+        return "none"
+    return _trigger_label(
+        sn.z_ip, sn.ip_rps, sn.use_z, sn.use_rate_mult, b.effective_mean
+    )

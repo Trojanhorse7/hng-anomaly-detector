@@ -19,6 +19,28 @@ baseline_min_samples_current_hour: 60
 # inside container: bind host ./data to /app/data in docker-compose
 audit_log_path: /app/data/audit.log
 
+# SQLite not required — JSON persists ban tier + schedules across restarts
+ban_state_path: /app/data/ban_state.json
+# wake interval for scheduled unbans (Slack each unban)
+unbanner_tick_seconds: 3.0
+
+slack:
+  # Value comes from the environment at runtime (set SLACK_WEBHOOK_URL in `.env` or the shell).
+  # Direct env SLACK_WEBHOOK_URL still wins in notifier.load_notifier_config if both are set.
+  webhook_url: "${SLACK_WEBHOOK_URL}"
+
+actions:
+  enabled: true
+  # avoid spamming Slack if global anomaly persists for minutes
+  global_notify_cooldown_seconds: 120
+
+dashboard:
+  enabled: true
+  bind_host: "0.0.0.0"
+  port: 8080
+  # WebSocket push interval (seconds); capped at 3 for the task SLA
+  push_interval_seconds: 2.5
+
 detection:
   z_threshold: 3.0
   z_threshold_tight: 2.0
