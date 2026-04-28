@@ -15,9 +15,10 @@ services:
     image: kefaslungu/hng-nextcloud:latest
     container_name: hng-nextcloud
     restart: unless-stopped
+    volumes:
+      - HNG-nginx-logs:/var/log/nginx:ro
     networks:
       - hng_net
-    # not publishing 8080/whatever—only hitting nextcloud through nginx
 
   nginx:
     image: nginx:1.27-alpine
@@ -39,7 +40,6 @@ services:
     depends_on:
       - nginx
     restart: unless-stopped
-    # iptables DROP must target the host network stack — use Linux host networking on the VPS.
     network_mode: host
     cap_add:
       - NET_ADMIN
