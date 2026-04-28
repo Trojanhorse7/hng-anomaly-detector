@@ -130,6 +130,17 @@ Webhook resolution: environment **`SLACK_WEBHOOK_URL`** wins; otherwise **`slack
 
 ---
 
+## Architecture & flow diagrams
+
+**Main architecture (PNG):** [`docs/diagrams/architecture.png`](docs/diagrams/architecture.png)
+
+![System context — Nginx, Nextcloud, HNG-nginx-logs volume, detector, iptables, Slack, dashboard, data](docs/diagrams/architecture.png)
+
+**Other exported image:**
+
+- [`docs/diagrams/flowDiagram.png`](docs/diagrams/flowDiagram.png) — sequence flow from one HTTP request to anomaly decision and reaction (global vs per-IP, ban tiers, audit, dashboard push).
+
+
 ## Screenshots (for submission - to be added)
 
 It would be placed under **`screenshots/`**:
