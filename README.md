@@ -158,7 +158,7 @@ Captured under [`screenshots/`](screenshots/):
 ---
 
 ## Blog post
-Link: `MY_BLOG_POST_URL`
+Link: [`BLOG URL`](https://dev.to/trojanhorse7/building-a-rolling-baseline-http-anomaly-detector-no-fail2ban-4kf2)
 
 ---
 
