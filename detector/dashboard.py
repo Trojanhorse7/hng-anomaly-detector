@@ -28,24 +28,59 @@ h1{font-size:1.1rem}
 <script>
 const st = document.getElementById('st');
 const o = document.getElementById('o');
-const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-const url = proto + '//' + location.host + '/ws';
-function connect(){
+let pollTimer = null;
+async function refreshViaHttp(){
+  try {
+    const r = await fetch('/api/state', { cache: 'no-store' });
+    const j = await r.json();
+    o.textContent = JSON.stringify(j, null, 2);
+  } catch (e) { o.textContent = String(e); }
+}
+function startPolling(reason){
+  if (pollTimer) return;
+  st.textContent = 'live (' + reason + ')';
+  refreshViaHttp();
+  pollTimer = setInterval(refreshViaHttp, 2500);
+}
+function connectWs(){
+  // Uvicorn serves plain WS (no TLS). If the browser shows https-on-443 (CDN, HTTPS-Everywhere style)
+  // the old logic chose wss:// while this app only exposes ws:// on :8080 — WebSocket fails in console.
+  const effectivePort =
+    Number(location.port) || (location.protocol === 'https:' ? 443 : 80);
+  const useTlsWs = location.protocol === 'https:' && effectivePort !== 8080;
+  const proto = useTlsWs ? 'wss' : 'ws';
+  const wsHostPort = location.host;
+  const url = proto + '//' + wsHostPort + '/ws';
+  if (typeof console !== 'undefined' && console.debug)
+    console.debug('[hng-dashboard] WebSocket url:', url);
   const ws = new WebSocket(url);
-  ws.onopen = () => { st.textContent = 'live (WebSocket)'; };
+  let opened = false;
+  const bail = () => {
+    if (pollTimer || opened) return;
+    startPolling('HTTP polling — WebSocket unavailable (use http://host:8080 directly, or fix proxy TLS/Upgrade)');
+  };
+  ws.onopen = () => {
+    opened = true;
+    st.textContent = 'live (WebSocket)';
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  };
   ws.onmessage = (ev) => {
     try {
       const j = JSON.parse(ev.data);
       o.textContent = JSON.stringify(j, null, 2);
     } catch (e) { o.textContent = String(e); }
   };
-  ws.onerror = () => { st.textContent = 'WebSocket error — retrying…'; };
+  ws.onerror = () => { if (!opened) bail(); };
   ws.onclose = () => {
-    st.textContent = 'disconnected — reconnecting…';
-    setTimeout(connect, 2000);
+    if (!opened) bail();
+    else {
+      st.textContent = 'WebSocket closed — fallback to HTTP polling';
+      startPolling('HTTP polling after WS drop');
+    }
   };
+  setTimeout(() => { if (!opened && !pollTimer) bail(); }, 3000);
 }
-connect();
+connectWs();
 </script>
 </body></html>
 """
@@ -94,14 +129,24 @@ def create_app(
 
     @app.websocket("/ws")
     async def metrics_stream(websocket: WebSocket) -> None:
-        await websocket.accept()
+        try:
+            await websocket.accept()
+        except Exception:
+            log.exception("websocket accept failed")
+            raise
         try:
             while True:
-                payload = await asyncio.to_thread(get_state)
-                await websocket.send_json(payload)
+                try:
+                    payload = await asyncio.to_thread(get_state)
+                    await websocket.send_json(payload)
+                except Exception:
+                    log.exception("websocket send failed (metrics payload)")
+                    break
                 await asyncio.sleep(push_interval_s)
         except WebSocketDisconnect:
-            pass
+            log.debug("websocket client disconnected")
+        except Exception:
+            log.exception("websocket loop exited")
 
     return app
 
