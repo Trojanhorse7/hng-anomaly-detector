@@ -48,9 +48,11 @@ function connectWs(){
   const effectivePort =
     Number(location.port) || (location.protocol === 'https:' ? 443 : 80);
   const useTlsWs = location.protocol === 'https:' && effectivePort !== 8080;
-  const proto = useTlsWs ? 'wss' : 'ws';
-  const wsHostPort = location.host;
-  const url = proto + '//' + wsHostPort + '/ws';
+  const wsScheme = useTlsWs ? 'wss' : 'ws';
+  // hostname + explicit port avoids bad/malformed location.host from extensions or /
+  // pathname confusion (those could produce ".../ws//host.../ws" in WebSocket ctor).
+  const portSeg = location.port !== '' ? ':' + location.port : '';
+  const url = wsScheme + '://' + location.hostname + portSeg + '/ws';
   if (typeof console !== 'undefined' && console.debug)
     console.debug('[hng-dashboard] WebSocket url:', url);
   const ws = new WebSocket(url);
