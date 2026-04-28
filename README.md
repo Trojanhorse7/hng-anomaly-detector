@@ -141,17 +141,19 @@ Webhook resolution: environment **`SLACK_WEBHOOK_URL`** wins; otherwise **`slack
 - [`docs/diagrams/flowDiagram.png`](docs/diagrams/flowDiagram.png) — sequence flow from one HTTP request to anomaly decision and reaction (global vs per-IP, ban tiers, audit, dashboard push).
 
 
-## Screenshots (for submission - to be added)
+## Screenshots (submission evidence)
 
-It would be placed under **`screenshots/`**:
+Captured under [`screenshots/`](screenshots/):
 
-1. `Tool-running.png` — daemon processing log lines  
-2. `Ban-slack.png` — Slack ban  
-3. `Unban-slack.png` — Slack unban  
-4. `Global-alert-slack.png` — global anomaly  
-5. `Iptables-banned.png` — `sudo iptables -L -n` with a DROP  
-6. `Audit-log.png` — ban, unban, baseline lines  
-7. `Baseline-graph.png` — two hourly slots, different effective mean  
+| Screenshot | Description |
+|------------|-------------|
+| [`Tool-running.png`](screenshots/Tool-running.png) | Daemon running, processing log lines |
+| [`Ban-slack.png`](screenshots/Ban-slack.png) | Slack ban notification |
+| [`Unban-slack.png`](screenshots/Unban-slack.png) | Slack unban notification |
+| [`Global-alert-slack.png`](screenshots/Global-alert-slack.png) | Slack global anomaly notification |
+| [`Iptables-banned.png`](screenshots/Iptables-banned.png) | `sudo iptables -L INPUT -n -v --line-numbers` showing a blocked IP (DROP) |
+| [`Audit-log.png`](screenshots/Audit-log.png) | Structured audit log: ban, unban, `BASELINE_RECALC` |
+| [`Baseline-graph.png`](screenshots/Baseline-graph.png) | Baseline over time: ≥ two hourly slots, different `effective_mean` |
 
 ---
 
